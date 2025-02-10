@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Aptitude & Math Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .puzzle-card {
+            transition: transform 0.3s ease;
+        }
+
+        .puzzle-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: #3b82f6;
+            border-radius: 50%;
+            display: none;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold" id="authTitle">Login</h2>
+                <button onclick="toggleModal('authModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div class="mb-4" id="nameField" style="display: none;">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                    <input type="text" id="name" class="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                    <input type="email" id="email" required class="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                    <input type="password" id="password" required class="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                    <span id="authButtonText">Login</span>
+                </button>
+                <p class="mt-4 text-center text-sm">
+                    <span id="authToggleText">Don't have an account?</span>
+                    <a href="#" onclick="toggleAuthMode()" class="text-blue-500 hover:text-blue-700" id="authToggleLink">Sign Up</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="modal flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-1/2">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Quiz</h2>
+                <button onclick="toggleModal('quizModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div id="quizContent">
+                <div class="mb-4">
+                    <p id="timer" class="text-lg font-bold text-blue-500"></p>
+                    <p id="questionText" class="text-lg"></p>
+                </div>
+                <div id="options" class="space-y-3"></div>
+                <button onclick="submitAnswer()" class="mt-6 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                    Submit Answer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-blue-600">Smart Aptitude</span>
+                </div>
+                <div class="flex items-center">
+                    <button id="loginBtn" onclick="toggleModal('authModal')" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Login
+                    </button>
+                    <button id="logoutBtn" onclick="handleLogout()" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Welcome Section -->
+        <section class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Improve Your Logical Thinking!</h1>
+            <p class="text-gray-600">Challenge yourself with math puzzles and aptitude questions</p>
+        </section>
+
+        <!-- Mode Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <!-- Quiz Mode -->
+            <div class="puzzle-card bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-blue-600">Aptitude Quiz Mode</h2>
+                <p class="text-gray-600 mb-4">Test your knowledge with timed multiple-choice questions.</p>
+                <div class="space-y-2">
+                    <button onclick="startQuiz('number')" class="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">Number Series</button>
+                    <button onclick="startQuiz('logical')" class="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">Logical Reasoning</button>
+                    <button onclick="startQuiz('probability')" class="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">Probability & Statistics</button>
+                    <button onclick="startQuiz('arithmetic')" class="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">Arithmetic & Algebra</button>
+                </div>
+            </div>
+
+            <!-- Puzzle Mode -->
+            <div class="puzzle-card bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-green-600">Math Puzzle Mode</h2>
+                <p class="text-gray-600 mb-4">Solve engaging puzzles at your own pace.</p>
+                <div class="space-y-2">
+                    <button onclick="startPuzzle('easy')" class="w-full bg-green-100 text-green-600 py-2 rounded hover:bg-green-200">Easy</button>
+                    <button onclick="startPuzzle('medium')" class="w-full bg-green-100 text-green-600 py-2 rounded hover:bg-green-200">Medium</button>
+                    <button onclick="startPuzzle('hard')" class="w-full bg-green-100 text-green-600 py-2 rounded hover:bg-green-200">Hard</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <section class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-purple-600">Leaderboard</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Badges</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Leaderboard entries will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let isLoggedIn = false;
+        let currentUser = null;
+        let isSignUpMode = false;
+        let currentQuiz = null;
+        let timer = null;
+        let quizTimeLeft = 0;
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('authTitle').textContent = isSignUpMode ? 'Sign Up' : 'Login';
+            document.getElementById('authButtonText').textContent = isSignUpMode ? 'Sign Up' : 'Login';
+            document.getElementById('authToggleText').textContent = isSignUpMode ? 'Already have an account?' : "Don't have an account?";
+            document.getElementById('authToggleLink').textContent = isSignUpMode ? 'Login' : 'Sign Up';
+            document.getElementById('nameField').style.display = isSignUpMode ? 'block' : 'none';
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        async function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+
+            try {
+                isLoggedIn = true;
+                currentUser = { email, name: name || email.split('@')[0] };
+                document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                toggleModal('authModal');
+                await loadLeaderboard();
+            } catch (error) {
+                alert('Authentication failed: ' + error.message);
+            }
+        }
+
+        function handleLogout() {
+            isLoggedIn = false;
+            currentUser = null;
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
+        }
+
+        function startQuiz(type) {
+            if (!isLoggedIn) {
+                alert('Please login to start a quiz');
+                toggleModal('authModal');
+                return;
+            }
+
+            const questions = {
+                number: [
+                    {
+                        question: "What comes next in the series: 2, 4, 8, 16, ...?",
+                        options: ["24", "32", "28", "36"],
+                        correct: 1
+                    }
+                ],
+                logical: [
+                    {
+                        question: "If all cats are animals, and some animals are pets, then:",
+                        options: [
+                            "All cats are pets",
+                            "Some cats might be pets",
+                            "No cats are pets",
+                            "All pets are cats"
+                        ],
+                        correct: 1
+                    }
+                ],
+                probability: [
+                    {
+                        question: "What is the probability of rolling a 6 on a fair die?",
+                        options: ["1/4", "1/6", "1/3", "1/2"],
+                        correct: 1
+                    }
+                ],
+                arithmetic: [
+                    {
+                        question: "Solve for x: 2x + 5 = 13",
+                        options: ["3", "4", "5", "6"],
+                        correct: 1
+                    }
+                ]
+            };
+
+            currentQuiz = {
+                type,
+                question: questions[type][0],
+                timeLeft: 30
+            };
+
+            displayQuiz();
+            toggleModal('quizModal');
+            startTimer();
+        }
+
+        function displayQuiz() {
+            document.getElementById('questionText').textContent = currentQuiz.question.question;
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            currentQuiz.question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-left p-3 rounded bg-gray-100 hover:bg-gray-200';
+                button.textContent = option;
+                button.onclick = () => selectOption(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function startTimer() {
+            quizTimeLeft = 30;
+            updateTimer();
+            timer = setInterval(() => {
+                quizTimeLeft--;
+                updateTimer();
+                if (quizTimeLeft <= 0) {
+                    clearInterval(timer);
+                    submitAnswer();
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            document.getElementById('timer').textContent = `Time remaining: ${quizTimeLeft}s`;
+        }
+
+        function selectOption(index) {
+            const options = document.getElementById('options').children;
+            for (let option of options) {
+                option.classList.remove('bg-blue-500', 'text-white');
+            }
+            options[index].classList.add('bg-blue-500', 'text-white');
+            currentQuiz.selectedAnswer = index;
+        }
+
+        function submitAnswer() {
+            clearInterval(timer);
+            const isCorrect = currentQuiz.selectedAnswer === currentQuiz.question.correct;
+            alert(isCorrect ? 'Correct!' : 'Wrong answer!');
+            toggleModal('quizModal');
+            updateLeaderboard(isCorrect);
+        }
+
+        function startPuzzle(difficulty) {
+            if (!isLoggedIn) {
+                alert('Please login to start a puzzle');
+                toggleModal('authModal');
+                return;
+            }
+            alert(`Starting ${difficulty} puzzle... (To be implemented)`);
+        }
+
+        async function loadLeaderboard() {
+            const mockData = [
+                { rank: 1, name: "John Doe", score: 1200, badges: ["🏆", "⭐"] },
+                { rank: 2, name: "Jane Smith", score: 1100, badges: ["🌟"] },
+                { rank: 3, name: "Bob Wilson", score: 1000, badges: ["🎯"] }
+            ];
+
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+
+            mockData.forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${entry.rank}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.score}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entry.badges.join(' ')}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateLeaderboard(isCorrect) {
+            loadLeaderboard();
+        }
+
+        loadLeaderboard();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+
+</html>
